@@ -29,8 +29,6 @@ Unlike traditional translators, this system combines:
 ---
 
 ## 🧠 Architecture
-
-```mermaid
 flowchart TD
     Input[User Input (GUI)]
     Detect[Auto Language Detection (langdetect)]
