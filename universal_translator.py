@@ -54,7 +54,7 @@ st.set_page_config("Universal AI Translator", page_icon="🌍", layout="centered
 
 st.markdown("""
 # 🌐 Universal AI Translator
-**Powered by Gemini 1.5 + M2M100 | Handles idioms, culture, and more**
+**Handles idioms, culture, and more**
 
 Type a sentence in any language and translate to another!
 """)
