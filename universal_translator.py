@@ -10,7 +10,6 @@ from transformers import M2M100Tokenizer, M2M100ForConditionalGeneration
 import google.generativeai as genai
 
 # Load API key
-try:
 GEMINI_API_KEY = st.secrets("GEMINI_API_KEY")
 except KeyError:
     st.error("❌ Please set your GEMINI_API_KEY in Streamlit's Secrets.")
