@@ -1,0 +1,8 @@
+transformers
+torch
+langdetect
+google-generativeai
+python-dotenv
+fastapi
+uvicorn
+PyQt5
