@@ -10,7 +10,11 @@ from transformers import M2M100Tokenizer, M2M100ForConditionalGeneration
 import google.generativeai as genai
 
 # Load API key
-GEMINI_API_KEY = st.secrets("GEMINI_API_KEY")
+try:
+    GEMINI_API_KEY = st.secrets("GEMINI_API_KEY")
+except KeyEroor:
+    st.error("❌ Please set your GEMINI_API_KEY in a .env file.")
+    st.stop()
 
 # Configure Gemini
 genai.configure(api_key=GEMINI_API_KEY)
