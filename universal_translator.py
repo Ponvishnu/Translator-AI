@@ -1,91 +1,125 @@
-# universal_translator.py
-# 🌍 Universal AI Translator | Gemini + M2M100 + Auto Lang Detect
+#  universal_translator_app.py
+# 🌍 Universal AI Translator — Gemini 1.5 + M2M100 + Streamlit + Auto & Manual Language Selection
 
 import os
+import csv
 import streamlit as st
+from dotenv import load_dotenv
 from langdetect import detect
 from transformers import M2M100Tokenizer, M2M100ForConditionalGeneration
-from sentence_transformers import SentenceTransformer
 import google.generativeai as genai
 
-# 🌐 Language dictionary
+# === 🔐 Load Gemini API Key ===
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    st.error("❌ Please set your GEMINI_API_KEY in a .env file or Streamlit secret.")
+    st.stop()
+
+# === 🔮 Configure Gemini ===
+genai.configure(api_key=GEMINI_API_KEY)
+gemini = genai.GenerativeModel("gemini-1.5-flash")
+
+# === 📦 Load M2M100 Fallback Model ===
+@st.cache_resource(show_spinner="⏳ Loading M2M100 model...")
+def load_m2m100():
+    tokenizer = M2M100Tokenizer.from_pretrained("facebook/m2m100_418M")
+    model = M2M100ForConditionalGeneration.from_pretrained("facebook/m2m100_418M")
+    return tokenizer, model
+
+tokenizer, m2m_model = load_m2m100()
+
+# === 🌐 Language Definitions ===
 LANGUAGES = {
     "en": "English", "hi": "Hindi", "ta": "Tamil", "te": "Telugu",
     "fr": "French", "de": "German", "es": "Spanish", "zh": "Chinese",
     "ja": "Japanese", "ko": "Korean", "ru": "Russian", "ar": "Arabic"
 }
-LANG_CODES = {v: k for k, v in LANGUAGES.items()}
+CODE_TO_NAME = LANGUAGES
+NAME_TO_CODE = {v: k for k, v in LANGUAGES.items()}
 
-# ✅ Gemini API from Streamlit Secrets
-try:
-    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-except Exception:
-    st.error("❌ GEMINI_API_KEY not found in secrets. Set it in Streamlit → Settings → Secrets.")
-    st.stop()
-
-# 🔮 Configure Gemini
-genai.configure(api_key=GEMINI_API_KEY)
-gemini_model = genai.GenerativeModel("gemini-1.5-flash")
-
-# 🔁 Load fallback M2M100 model
-tokenizer = M2M100Tokenizer.from_pretrained("facebook/m2m100_418M")
-m2m_model = M2M100ForConditionalGeneration.from_pretrained("facebook/m2m100_418M")
-
-# 🌟 Translation Functions
-def gemini_translate(text, target_lang):
+# === 📘 Load Idioms ===
+@st.cache_data
+def load_idioms(path="idioms_multilingual.tsv"):
     try:
-        prompt = f"Translate this to {target_lang}. Preserve meaning, idioms, and culture:\n\n{text}"
-        response = gemini_model.generate_content(prompt)
+        with open(path, "r", encoding="utf-8") as f:
+            reader = csv.reader(f, delimiter="\t")
+            return [f"{a} → {b}" for a, b in reader][:10]
+    except:
+        return []
+
+# === 🧠 Gemini Translation ===
+def gemini_translate(text, target_lang_name):
+    prompt = f"Translate the following to {target_lang_name}. Consider idioms and cultural nuances:\n\n{text}"
+    try:
+        response = gemini.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        return f"⚠️ Gemini error: {e}"
+        return f"⚠️ Gemini failed: {e}"
 
-def m2m_translate(text, src_lang, tgt_lang):
+# === 🔁 M2M100 Fallback ===
+def m2m_translate(text, source_lang, target_lang):
     try:
-        tokenizer.src_lang = src_lang
+        tokenizer.src_lang = source_lang
         encoded = tokenizer(text, return_tensors="pt")
-        generated = m2m_model.generate(**encoded, forced_bos_token_id=tokenizer.get_lang_id(tgt_lang))
+        generated = m2m_model.generate(**encoded, forced_bos_token_id=tokenizer.get_lang_id(target_lang))
         return tokenizer.batch_decode(generated, skip_special_tokens=True)[0]
     except Exception as e:
-        return f"⚠️ Fallback error: {e}"
+        return f"⚠️ Fallback failed: {e}"
 
-# 🌍 Streamlit UI
-st.set_page_config("Universal AI Translator", page_icon="🌍", layout="centered")
+# === 🎨 Streamlit UI ===
+st.set_page_config("🌐 Universal AI Translator", page_icon="🌍", layout="wide")
+st.title("🌍 Universal AI Translator")
+st.caption("Powered by Gemini 1.5 + M2M100 | Handles idioms, culture, and fallback.")
 
-st.markdown("""
-# 🌐 Universal AI Translator
-**Handles idioms, culture, and more**
+st.markdown("#### ✏️ Enter your sentence below (auto detects source language):")
+text_input = st.text_area("Input Text", height=150, placeholder="E.g., रस्सी जल गयी, बल नहीं गया")
 
-Type a sentence in any language and translate to another!
-""")
+# === 🧭 Language Selection ===
+col1, col2 = st.columns(2)
 
-text = st.text_area("✍️ Enter text to translate:", height=120)
-target_lang = st.selectbox("🌎 Translate to", list(LANGUAGES.values()), index=list(LANGUAGES.values()).index("Hindi"))
+# Auto-detect language
+auto_src_code = "en"
+if text_input.strip():
+    try:
+        auto_src_code = detect(text_input.strip())
+        auto_src_name = CODE_TO_NAME.get(auto_src_code, "English")
+    except:
+        auto_src_code = "en"
+        auto_src_name = "English"
+else:
+    auto_src_name = "English"
 
-if st.button("🔁 Translate"):
-    if not text.strip():
-        st.warning("⚠️ Please enter some text to translate.")
+with col1:
+    use_auto = st.toggle("🌐 Auto-detect source language", value=True)
+    if use_auto:
+        st.info(f"Detected Language: **{auto_src_name}** ({auto_src_code})")
+        src_code = auto_src_code
     else:
-        with st.spinner("🔍 Detecting language..."):
-            try:
-                detected = detect(text)
-                src_name = LANGUAGES.get(detected, "Unknown")
-                st.info(f"Detected Source Language: **{src_name} ({detected})**")
-            except:
-                st.warning("⚠️ Couldn't detect language. Assuming English.")
-                detected = "en"
+        src_name = st.selectbox("🗣️ Source Language", list(NAME_TO_CODE.keys()), index=list(NAME_TO_CODE).index("English"))
+        src_code = NAME_TO_CODE[src_name]
 
-        tgt_code = LANG_CODES[target_lang]
-        with st.spinner("🔮 Translating with Gemini..."):
-            result = gemini_translate(text, target_lang)
+with col2:
+    tgt_name = st.selectbox("🌍 Target Language", list(NAME_TO_CODE.keys()), index=list(NAME_TO_CODE).index("Hindi"))
+    tgt_code = NAME_TO_CODE[tgt_name]
 
-        # Fallback if Gemini fails
-        if result.startswith("⚠️"):
-            st.warning("Switching to fallback model (M2M100)...")
-            result = m2m_translate(text, detected, tgt_code)
+# === 🔄 Translate Button ===
+submit = st.button("🔁 Translate")
 
-        st.success("✅ Translation:")
-        st.text_area("🌟 Result:", value=result, height=150)
+if submit and text_input.strip():
+    with st.spinner("💬 Translating with Gemini..."):
+        result = gemini_translate(text_input.strip(), tgt_name)
 
-st.markdown("---")
-st.caption("Built with ❤️ using Gemini 1.5, M2M100, Streamlit")
+    if "⚠️ Gemini failed" in result:
+        with st.spinner("⚠️ Gemini failed. Trying fallback model..."):
+            result = m2m_translate(text_input.strip(), src_code, tgt_code)
+
+    st.success("✅ Translated Result:")
+    st.markdown(f"**{result}**")
+
+# === 📘 Idioms Display ===
+idioms = load_idioms()
+if idioms:
+    with st.expander("📚 Example Idioms (Multilingual)"):
+        for i in idioms:
+            st.markdown(f"- {i}")
