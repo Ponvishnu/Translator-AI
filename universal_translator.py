@@ -4,16 +4,16 @@
 import os
 import csv
 import streamlit as st
-from dotenv import load_dotenv
+import streamlit as st
 from langdetect import detect
 from transformers import M2M100Tokenizer, M2M100ForConditionalGeneration
 import google.generativeai as genai
 
 # Load API key
-load_dotenv()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    st.error("❌ Please set your GEMINI_API_KEY in a .env file.")
+try:
+GEMINI_API_KEY = st.secrets("GEMINI_API_KEY")
+except KeyError:
+    st.error("❌ Please set your GEMINI_API_KEY in Streamlit's Secrets.")
     st.stop()
 
 # Configure Gemini
