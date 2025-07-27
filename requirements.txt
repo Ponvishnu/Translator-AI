@@ -1,8 +1,10 @@
+streamlit
+python-dotenv
+requests
+beautifulsoup4
 transformers
 torch
+sentence-transformers
 langdetect
 google-generativeai
-python-dotenv
-fastapi
-uvicorn
-PyQt5
+pandas
