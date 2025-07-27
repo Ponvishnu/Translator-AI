@@ -11,9 +11,6 @@ import google.generativeai as genai
 
 # Load API key
 GEMINI_API_KEY = st.secrets("GEMINI_API_KEY")
-except KeyError:
-    st.error("❌ Please set your GEMINI_API_KEY in Streamlit's Secrets.")
-    st.stop()
 
 # Configure Gemini
 genai.configure(api_key=GEMINI_API_KEY)
