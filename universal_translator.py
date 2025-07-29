@@ -1,4 +1,4 @@
-#  universal_translator_app.py
+# universal_translator_app.py
 # 🌍 Universal AI Translator — Gemini 1.5 + M2M100 + Streamlit + Auto & Manual Language Selection
 
 import os
