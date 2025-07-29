@@ -107,7 +107,7 @@ with col2:
 submit = st.button("🔁 Translate")
 
 if submit and text_input.strip():
-    with st.spinner("💬 Translating with Gemini..."):
+    with st.spinner("💬 Translating..."):
         result = gemini_translate(text_input.strip(), tgt_name)
 
     if "⚠️ Gemini failed" in result:
