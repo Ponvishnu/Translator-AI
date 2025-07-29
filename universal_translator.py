@@ -70,7 +70,7 @@ def m2m_translate(text, source_lang, target_lang):
 # === 🎨 Streamlit UI ===
 st.set_page_config("🌐 Universal AI Translator", page_icon="🌍", layout="wide")
 st.title("🌍 Universal AI Translator")
-st.caption("Powered by Gemini 1.5 + M2M100 | Handles idioms, culture, and fallback.")
+st.caption(" Handles idioms, culture, and fallback.")
 
 st.markdown("#### ✏️ Enter your sentence below (auto detects source language):")
 text_input = st.text_area("Input Text", height=150, placeholder="E.g., रस्सी जल गयी, बल नहीं गया")
